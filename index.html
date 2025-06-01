@@ -109,21 +109,21 @@
 <body>
   <h1>Cubic Portugal League</h1>
 
-  <!-- 1) Container para inserir o ID da sala -->
+  <!-- Container para inserir o ID da sala -->
   <div class="container" id="idContainer">
     <input type="text" id="idInput" placeholder="Introduz o ID da sala">
     <button onclick="verificarID()">Entrar</button>
   </div>
 
-  <!-- 2) Aviso de gravação antes de prosseguir -->
+  <!-- Container de confirmação antes de mostrar scrambles e campos de tempo -->
   <div class="container" id="confirmContainer">
     <p style="font-size: 1.1em; text-align: center;">
       É obrigatório que já estejas a gravar esta disputa para continuar
     </p>
-    <button id="btnConfirmar">Confirmo que estou a gravar</button>
+    <button onclick="confirmarGravacao()">Confirmo que estou a gravar</button>
   </div>
 
-  <!-- 3) Container onde aparecem scrambles e campos para introduzir tempos -->
+  <!-- Container onde aparecem scrambles e campos para introduzir tempos -->
   <div class="container" id="solveContainer">
     <div id="solveFields">
       <div id="scramble" class="scramble"></div>
@@ -151,7 +151,7 @@
     <div id="mediaFinal" style="margin-top:20px; font-weight:bold;"></div>
   </div>
 
-  <!-- 4) Container com resultados finais: tabela + estatísticas -->
+  <!-- Container com resultados finais: tabela + estatísticas -->
   <div class="container" id="resultsContainer">
     <h2>Resultados Finais</h2>
 
@@ -169,32 +169,8 @@
     </div>
   </div>
 
-  <!-- Script principal: Firebase + lógica da Cubic Portugal League -->
-  <script type="module">
-    // 1) Importar Firebase core, analytics e Realtime Database
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-analytics.js";
-    import { getDatabase, ref, runTransaction } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
-
-    // 2) Configuração do Firebase (já tens estas credenciais)
-    const firebaseConfig = {
-      apiKey: "AIzaSyAFgCXSwRcM9Jmn6cGdG848A5uCbN8coNI",
-      authDomain: "cpl-id-sala-80132.firebaseapp.com",
-      projectId: "cpl-id-sala-80132",
-      storageBucket: "cpl-id-sala-80132.firebasestorage.app",
-      messagingSenderId: "342930536800",
-      appId: "1:342930536800:web:25ec461bf0e1cd97e48605",
-      measurementId: "G-ND6FTLKXRY"
-    };
-
-    // 3) Inicializar Firebase e Analytics
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
-
-    // 4) Inicializar Realtime Database
-    const database = getDatabase(app);
-
-    // 5) Objeto com todos os IDs e scrambles (mantido como tinhas)
+  <script>
+    // Todos os IDs e as suas scrambles (mantidos como tinhas)
     const scramblesPorID = {
       "X7M3A9": [
         "F2 R U2 R' B2 F R2 U2 L D' R U' R' F' L U2 F2 U'",
@@ -268,13 +244,11 @@
       ]
     };
 
-    // 6) Variáveis de estado do jogo
     let solves = [];
     let scrambles = [];
     let idAtual = "";
     let solveIndex = 0;
 
-    // 7) Função para verificar se o ID existe e prosseguir para o aviso de gravação
     function verificarID() {
       const id = document.getElementById("idInput").value.trim().toUpperCase();
       if (!scramblesPorID[id]) {
@@ -287,45 +261,26 @@
       solves = [];
       solveIndex = 0;
 
-      // Esconde a caixa de inserir ID e mostra o aviso de gravação
+      // Em vez de mostrar imediatamente os scrambles, mostramos o aviso de gravação
       document.getElementById("idContainer").style.display = "none";
       document.getElementById("confirmContainer").style.display = "block";
     }
 
-    // 8) Função para incrementar a contagem desse ID no Realtime Database
-    function incrementarContagem(idSala) {
-      const countRef = ref(database, 'contagemID/' + idSala);
-      runTransaction(countRef, (valorAtual) => {
-        return (valorAtual || 0) + 1;
-      })
-      .then(() => {
-        console.log("Contagem aumentada para o ID: " + idSala);
-      })
-      .catch((erro) => {
-        console.error("Erro ao aumentar contagem:", erro);
-      });
-    }
+    function confirmarGravacao() {
+      // Aqui, mais tarde, irás adicionar o código do Realtime Database para incrementar o contador deste ID
+      // Por enquanto, apenas prosseguimos para mostrar o conteúdo de solves
 
-    // 9) Liga o botão "Confirmo que estou a gravar" à função de contagem + continuação da interface
-    document.getElementById('btnConfirmar').addEventListener('click', () => {
-      // Incrementa a contagem daquele ID no Firebase
-      incrementarContagem(idAtual);
-
-      // Esconde o aviso e mostra o container de solves
       document.getElementById("confirmContainer").style.display = "none";
       document.getElementById("solveContainer").style.display = "block";
       mostrarProximoScramble();
-    });
-
-    // 10) Funções originais para gerir os scrambles e tempos
+    }
 
     function mostrarProximoScramble() {
       if (solveIndex >= 5) {
         finalizarSessao();
         return;
       }
-      document.getElementById("scramble").innerText =
-        `Scramble #${solveIndex + 1}: ${scrambles[solveIndex]}`;
+      document.getElementById("scramble").innerText = `Scramble #${solveIndex + 1}: ${scrambles[solveIndex]}`;
       document.getElementById("tempoInput").value = "";
 
       // Limpa checkboxes de penalidade
@@ -382,7 +337,7 @@
     }
 
     function finalizarSessao() {
-      // Esconde todo o container de solves
+      // Esconde todo o container de solves (remove barra branca no topo)
       document.getElementById("solveContainer").style.display = "none";
 
       document.getElementById("resultsContainer").style.display = "block";
