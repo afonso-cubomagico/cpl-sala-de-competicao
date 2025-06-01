@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cubic Portugal League</title>
   <style>
+    /* Fundo “clean” com gradiente suave */
     body {
       margin: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(to right, #1f4037, #99f2c8);
+      background: linear-gradient(to right, #e0eafc, #cfdef3);
       color: #333;
       display: flex;
       flex-direction: column;
@@ -17,9 +18,15 @@
       min-height: 100vh;
       box-sizing: border-box;
     }
+    /* Título mais estilizado */
     h1 {
-      color: #fff;
-      margin-bottom: 10px;
+      color: #2c3e50;
+      font-size: 2.5em;
+      font-weight: 700;
+      margin-bottom: 20px;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+      letter-spacing: 1px;
+      text-transform: uppercase;
     }
     .container {
       background: white;
@@ -27,8 +34,9 @@
       padding: 30px;
       max-width: 600px;
       width: 100%;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
       box-sizing: border-box;
+      margin-bottom: 20px;
     }
     input, button {
       padding: 10px;
@@ -40,23 +48,36 @@
       box-sizing: border-box;
     }
     button {
-      background-color: #1f4037;
+      background-color: #34495e;
       color: white;
       cursor: pointer;
       transition: 0.3s;
     }
     button:hover {
-      background-color: #145a32;
+      background-color: #2c3e50;
     }
     .scramble {
       font-weight: bold;
       margin: 10px 0;
       font-size: 1.2em;
     }
+    /* Penalidades centralizadas verticalmente sob o texto */
     .penalties {
       display: flex;
       justify-content: space-around;
       margin: 10px 0;
+    }
+    .penalties label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 16px;
+    }
+    .penalties input {
+      margin-top: 5px;
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
     }
     table {
       width: 100%;
@@ -72,30 +93,55 @@
       background-color: #f2f2f2;
     }
     /* Esconde as seções que não devem aparecer inicialmente */
-    #solveContainer, #resultsContainer {
+    #confirmContainer, #solveContainer, #resultsContainer {
       display: none;
     }
+    /* Estilos para estatísticas finais */
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+      font-weight: bold;
+      font-size: 1.1em;
+    }
   </style>
-
-
+</head>
+<body>
   <h1>Cubic Portugal League</h1>
+
+  <!-- Container para inserir o ID da sala -->
   <div class="container" id="idContainer">
     <input type="text" id="idInput" placeholder="Introduz o ID da sala">
     <button onclick="verificarID()">Entrar</button>
   </div>
 
+  <!-- Container de confirmação antes de mostrar scrambles e campos de tempo -->
+  <div class="container" id="confirmContainer">
+    <p style="font-size: 1.1em; text-align: center;">
+      É obrigatório que já estejas a gravar esta disputa para continuar
+    </p>
+    <button onclick="confirmarGravacao()">Confirmo que estou a gravar</button>
+  </div>
+
+  <!-- Container onde aparecem scrambles e campos para introduzir tempos -->
   <div class="container" id="solveContainer">
     <div id="solveFields">
       <div id="scramble" class="scramble"></div>
       <input type="text" id="tempoInput" placeholder="Tempo (ex: 12.34)">
       <div class="penalties">
-        <label><input type="radio" name="penalidade" value="+2"> +2s</label>
-        <label><input type="radio" name="penalidade" value="DNF"> DNF</label>
+        <label>
+          +2
+          <input type="checkbox" name="plus2" value="+2">
+        </label>
+        <label>
+          DNF
+          <input type="checkbox" name="dnf" value="DNF">
+        </label>
       </div>
       <button onclick="submeterTempo()">Submeter tempo</button>
     </div>
-    
-    <!-- Tabela de resultados (sempre visível quando se entra no modo solve) -->
+
+    <!-- Tabela de resultados durante as solves -->
     <table id="tabelaTempos">
       <thead>
         <tr><th>Scramble</th><th>Tempo</th><th>Penalidade</th></tr>
@@ -105,20 +151,26 @@
     <div id="mediaFinal" style="margin-top:20px; font-weight:bold;"></div>
   </div>
 
+  <!-- Container com resultados finais: tabela + estatísticas -->
   <div class="container" id="resultsContainer">
-    <!-- Esta seção só será mostrada quando todas as solves estiverem completas -->
     <h2>Resultados Finais</h2>
+
     <table id="finalTabela">
       <thead>
         <tr><th>Scramble</th><th>Tempo</th><th>Penalidade</th></tr>
       </thead>
       <tbody></tbody>
     </table>
-    <div id="finalMedia" style="margin-top:20px; font-weight:bold;"></div>
+
+    <!-- Estatísticas finais: Single à esquerda, Ao5 à direita -->
+    <div class="stats">
+      <span id="bestSingle"></span>
+      <span id="finalAo5"></span>
+    </div>
   </div>
 
   <script>
-    // Todos os IDs e as suas scrambles
+    // Todos os IDs e as suas scrambles (mantidos como tinhas)
     const scramblesPorID = {
       "X7M3A9": [
         "F2 R U2 R' B2 F R2 U2 L D' R U' R' F' L U2 F2 U'",
@@ -195,109 +247,142 @@
     let solves = [];
     let scrambles = [];
     let idAtual = "";
-    let solveIndex = 0; // para contar solves
+    let solveIndex = 0;
 
-    // Quando se verifica o ID, esconde o container do ID e mostra o container de solves.
     function verificarID() {
       const id = document.getElementById("idInput").value.trim().toUpperCase();
-      const userKey = `usado_${id}_${navigator.userAgent}`;
       if (!scramblesPorID[id]) {
         alert("ID inválido!");
         return;
       }
-      if (localStorage.getItem(userKey)) {
-        alert("Já utilizaste este ID neste dispositivo!");
-        return;
-      }
-      localStorage.setItem(userKey, true);
+
       idAtual = id;
       scrambles = scramblesPorID[id];
       solves = [];
       solveIndex = 0;
 
-      // Esconde o container do ID
+      // Em vez de mostrar imediatamente os scrambles, mostramos o aviso de gravação
       document.getElementById("idContainer").style.display = "none";
-      // Mostra o container de solves
+      document.getElementById("confirmContainer").style.display = "block";
+    }
+
+    function confirmarGravacao() {
+      // Aqui, mais tarde, irás adicionar o código do Realtime Database para incrementar o contador deste ID
+      // Por enquanto, apenas prosseguimos para mostrar o conteúdo de solves
+
+      document.getElementById("confirmContainer").style.display = "none";
       document.getElementById("solveContainer").style.display = "block";
       mostrarProximoScramble();
     }
 
-    // Mostra o scramble atual ou, se concluiu as 5 solves, chama a função para finalizar.
     function mostrarProximoScramble() {
       if (solveIndex >= 5) {
         finalizarSessao();
         return;
       }
       document.getElementById("scramble").innerText = `Scramble #${solveIndex + 1}: ${scrambles[solveIndex]}`;
-      // Limpa o campo de tempo e as penalidades
       document.getElementById("tempoInput").value = "";
-      document.querySelectorAll('input[name="penalidade"]').forEach(el => el.checked = false);
+
+      // Limpa checkboxes de penalidade
+      document.querySelector('input[name="plus2"]').checked = false;
+      document.querySelector('input[name="dnf"]').checked = false;
     }
 
-    // Submete o tempo e atualiza a tabela
     function submeterTempo() {
       const tempoStr = document.getElementById("tempoInput").value;
-      const penalidade = document.querySelector('input[name="penalidade"]:checked')?.value || "";
+      const plus2Checked = document.querySelector('input[name="plus2"]').checked;
+      const dnfChecked = document.querySelector('input[name="dnf"]').checked;
+
       if (!tempoStr || isNaN(parseFloat(tempoStr))) {
         alert("Insere um tempo válido antes de submeter!");
         return;
       }
       const tempo = parseFloat(tempoStr);
+
+      let tempoParaCalculo, displayTempo, penalidade;
+      if (dnfChecked) {
+        tempoParaCalculo = Infinity;
+        displayTempo = "DNF";
+        penalidade = "DNF";
+      } else if (plus2Checked) {
+        tempoParaCalculo = tempo + 2;
+        displayTempo = (tempo + 2).toFixed(2);
+        penalidade = "+2";
+      } else {
+        tempoParaCalculo = tempo;
+        displayTempo = tempo.toFixed(2);
+        penalidade = "";
+      }
+
       solves.push({
         scramble: scrambles[solveIndex],
-        tempo: tempo,
+        tempo: tempoParaCalculo,
+        displayTempo: displayTempo,
         penalidade: penalidade
       });
+
       atualizarTabela();
       solveIndex++;
       mostrarProximoScramble();
     }
 
-    // Atualiza a tabela de resultados
     function atualizarTabela() {
       const tbody = document.querySelector("#tabelaTempos tbody");
       tbody.innerHTML = "";
       solves.forEach(s => {
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${s.scramble}</td><td>${s.tempo}</td><td>${s.penalidade}</td>`;
+        tr.innerHTML = `<td>${s.scramble}</td><td>${s.displayTempo}</td><td>${s.penalidade}</td>`;
         tbody.appendChild(tr);
       });
     }
 
-    // Quando 5 solves forem submetidos, esconde os campos de solve e mostra somente a tabela final e a média.
     function finalizarSessao() {
-      // Esconde os campos de entrada
-      document.getElementById("solveFields").style.display = "none";
-      // Opcional: move a tabela e média para um container exclusivo de resultados finais
+      // Esconde todo o container de solves (remove barra branca no topo)
+      document.getElementById("solveContainer").style.display = "none";
+
       document.getElementById("resultsContainer").style.display = "block";
-      // Preenche a tabela final duplicando o que já está
       const finalTbody = document.querySelector("#finalTabela tbody");
-      finalTbody.innerHTML = document.querySelector("#tabelaTempos tbody").innerHTML;
-      calcularMedia();
+      finalTbody.innerHTML = "";
+      solves.forEach(s => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${s.scramble}</td><td>${s.displayTempo}</td><td>${s.penalidade}</td>`;
+        finalTbody.appendChild(tr);
+      });
+
+      calcularEstatisticas();
     }
 
-    // Calcula e exibe a média ao5
-    function calcularMedia() {
-      // Aplica as penalidades: DNF transforma em Infinity; +2 soma 2 ao tempo
-      let temposValidos = solves.map(s => {
-        if (s.penalidade === "DNF") return Infinity;
-        if (s.penalidade === "+2") return s.tempo + 2;
-        return s.tempo;
-      });
-      // Se mais do que um DNF ocorrer, a média é DNF.
-      if (temposValidos.filter(t => t === Infinity).length > 1) {
-        document.getElementById("finalMedia").innerText = "Média ao5: DNF (2 ou mais DNFs)";
+    function calcularEstatisticas() {
+      // Calcular Single (sem “s”)
+      const temposValidosParaSingle = solves
+        .map(s => s.tempo)
+        .filter(t => t !== Infinity);
+
+      let bestSingleDisplay;
+      if (temposValidosParaSingle.length > 0) {
+        const best = Math.min(...temposValidosParaSingle);
+        bestSingleDisplay = best.toFixed(2);
+      } else {
+        bestSingleDisplay = "DNF";
+      }
+      document.getElementById("bestSingle").innerText = `Single: ${bestSingleDisplay}`;
+
+      // Calcular Ao5 (sem “s”)
+      const temposParaAo5 = solves.map(s => s.tempo);
+      if (temposParaAo5.filter(t => t === Infinity).length > 1) {
+        document.getElementById("finalAo5").innerText = "Ao5: DNF";
         return;
       }
-      temposValidos.sort((a, b) => a - b);
-      // Remove o menor e o maior valor (melhor e pior solve) se houver 5 solves
-      if (temposValidos.length === 5) {
-        temposValidos.shift();  // remove o menor (melhor tempo)
-        temposValidos.pop();    // remove o maior (pior tempo)
+      const classificados = [...temposParaAo5].sort((a, b) => a - b);
+      if (classificados.length === 5) {
+        classificados.shift();
+        classificados.pop();
       }
-      const media = temposValidos.reduce((acc, val) => acc + val, 0) / temposValidos.length;
-      document.getElementById("finalMedia").innerText = `Média ao5: ${media.toFixed(2)}s`;
+      const soma = classificados.reduce((acc, val) => acc + val, 0);
+      const media = soma / classificados.length;
+      document.getElementById("finalAo5").innerText = `Ao5: ${media.toFixed(2)}`;
     }
   </script>
-
+</body>
+</html>
 
