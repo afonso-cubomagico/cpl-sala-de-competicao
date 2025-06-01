@@ -104,6 +104,13 @@
       font-weight: bold;
       font-size: 1.1em;
     }
+    /* Aviso de gravação */
+    #confirmContainer p {
+      font-size: 1.1em;
+      text-align: center;
+      margin-bottom: 15px;
+      color: #a00;
+    }
   </style>
 </head>
 <body>
@@ -115,12 +122,10 @@
     <button onclick="verificarID()">Entrar</button>
   </div>
 
-  <!-- Container de confirmação antes de mostrar scrambles e campos de tempo -->
+  <!-- Container de aviso e confirmação antes de mostrar scrambles -->
   <div class="container" id="confirmContainer">
-    <p style="font-size: 1.1em; text-align: center;">
-      É obrigatório que já estejas a gravar esta disputa para continuar
-    </p>
-    <button onclick="confirmarGravacao()">Confirmo que estou a gravar</button>
+    <p>É obrigatório que já estejas a gravar esta disputa para continuar</p>
+    <button id="botaoConfirmar">Confirmo que estou a gravar</button>
   </div>
 
   <!-- Container onde aparecem scrambles e campos para introduzir tempos -->
@@ -154,23 +159,41 @@
   <!-- Container com resultados finais: tabela + estatísticas -->
   <div class="container" id="resultsContainer">
     <h2>Resultados Finais</h2>
-
     <table id="finalTabela">
       <thead>
         <tr><th>Scramble</th><th>Tempo</th><th>Penalidade</th></tr>
       </thead>
       <tbody></tbody>
     </table>
-
-    <!-- Estatísticas finais: Single à esquerda, Ao5 à direita -->
     <div class="stats">
       <span id="bestSingle"></span>
       <span id="finalAo5"></span>
     </div>
   </div>
 
-  <script>
-    // Todos os IDs e as suas scrambles (mantidos como tinhas)
+  <script type="module">
+    // Importar Firebase e Realtime Database
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-analytics.js";
+    import { getDatabase, ref, runTransaction } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
+
+    // Configuração Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAFgCXSwRcM9Jmn6cGdG848A5uCbN8coNI",
+      authDomain: "cpl-id-sala-80132.firebaseapp.com",
+      projectId: "cpl-id-sala-80132",
+      storageBucket: "cpl-id-sala-80132.firebasestorage.app",
+      messagingSenderId: "342930536800",
+      appId: "1:342930536800:web:25ec461bf0e1cd97e48605",
+      measurementId: "G-ND6FTLKXRY"
+    };
+
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const database = getDatabase(app);
+
+    // IDs e seus scrambles
     const scramblesPorID = {
       "X7M3A9": [
         "F2 R U2 R' B2 F R2 U2 L D' R U' R' F' L U2 F2 U'",
@@ -249,6 +272,14 @@
     let idAtual = "";
     let solveIndex = 0;
 
+    // Função para incrementar contagem do ID no Firebase
+    function contarUsoDoID(id) {
+      const caminho = ref(database, 'ids/' + id);
+      return runTransaction(caminho, (valorAtual) => {
+        return (valorAtual || 0) + 1;
+      });
+    }
+
     function verificarID() {
       const id = document.getElementById("idInput").value.trim().toUpperCase();
       if (!scramblesPorID[id]) {
@@ -261,19 +292,23 @@
       solves = [];
       solveIndex = 0;
 
-      // Em vez de mostrar imediatamente os scrambles, mostramos o aviso de gravação
+      // Esconde o container de ID e mostra o aviso de confirmação
       document.getElementById("idContainer").style.display = "none";
       document.getElementById("confirmContainer").style.display = "block";
     }
 
-    function confirmarGravacao() {
-      // Aqui, mais tarde, irás adicionar o código do Realtime Database para incrementar o contador deste ID
-      // Por enquanto, apenas prosseguimos para mostrar o conteúdo de solves
-
+    document.getElementById("botaoConfirmar").addEventListener("click", async () => {
+      // Ao confirmar, incrementa o contador do ID no Firebase
+      try {
+        await contarUsoDoID(idAtual);
+      } catch (error) {
+        console.error("Erro a atualizar contagem do ID:", error);
+      }
+      // Depois, mostra o container de solves
       document.getElementById("confirmContainer").style.display = "none";
       document.getElementById("solveContainer").style.display = "block";
       mostrarProximoScramble();
-    }
+    });
 
     function mostrarProximoScramble() {
       if (solveIndex >= 5) {
@@ -337,7 +372,7 @@
     }
 
     function finalizarSessao() {
-      // Esconde todo o container de solves (remove barra branca no topo)
+      // Esconde todo o container de solves
       document.getElementById("solveContainer").style.display = "none";
 
       document.getElementById("resultsContainer").style.display = "block";
@@ -385,4 +420,3 @@
   </script>
 </body>
 </html>
-
