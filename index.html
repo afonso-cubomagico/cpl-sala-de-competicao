@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -445,5 +446,34 @@
       document.getElementById("finalAo5").innerText = `Ao5: ${media.toFixed(2)}`;
     }
   </script>
+
+<script type="module">
+  // Importações (cada uma apenas uma vez)
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+  import { getAnalytics }   from "https://www.gstatic.com/firebasejs/11.8.1/firebase-analytics.js";
+  import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
+
+  // Configuração do Firebase (inclui databaseURL)
+  const firebaseConfig = {
+    apiKey: "AIzaSyAFgCXSwRcM9Jmn6cGdG848A5uCbN8coNI",
+    authDomain: "cpl-id-sala-80132.firebaseapp.com",
+    databaseURL: "https://cpl-id-sala-80132-default-rtdb.europe-west1.firebasedatabase.app/",
+    projectId: "cpl-id-sala-80132",
+    storageBucket: "cpl-id-sala-80132.firebasestorage.app",
+    messagingSenderId: "342930536800",
+    appId: "1:342930536800:web:25ec461bf0e1cd97e48605",
+    measurementId: "G-ND6FTLKXRY"
+  };
+
+  // Inicializa Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+
+  // Liga-te à Realtime Database (usa o app que acabaste de inicializar)
+  const db = getDatabase(app);
+</script>
+
+
 </body>
 </html>
+		
